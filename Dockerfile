@@ -1,17 +1,23 @@
-# Usa uma imagem oficial com JDK 17
+# Usa JDK 17
 FROM eclipse-temurin:17-jdk
 
-# Define o diretório de trabalho
+# Diretório de trabalho
 WORKDIR /app
 
-# Copia o código do projeto
+# Copia o código
 COPY . .
 
-# Compila o projeto
-RUN ./mvnw -DskipTests clean package
+# Ajusta finais de linha do mvnw (caso tenha vindo do Windows) e dá permissão de execução
+RUN sed -i 's/\r$//' mvnw && chmod +x mvnw
 
-# Expõe a porta que o Render vai usar
+# Build (modo batch para evitar prompts) e sem testes
+RUN ./mvnw -B -DskipTests clean package
+
+# Porta que o app usa (Render injeta $PORT)
 EXPOSE 8080
 
-# Comando para iniciar a aplicação
-CMD ["java", "-Dserver.port=$PORT", "-Dspring.profiles.active=dev", "-jar", "target/apple-academy-api-0.0.1-SNAPSHOT.jar"]
+# Sobe o app (pega qualquer .jar gerado)
+CMD ["sh","-c","java -Dserver.port=${PORT} -Dspring.profiles.active=${SPRING_PROFILES_ACTIVE:-dev} -jar target/apple-academy-api-0.0.1-SNAPSHOT.jar"]
+
+
+
