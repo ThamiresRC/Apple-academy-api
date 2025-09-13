@@ -37,16 +37,25 @@ public class SecurityConfig {
         return http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
+                        // público para o Render (apenas GET /ping)
+                        .requestMatchers(HttpMethod.GET, "/ping").permitAll()
+
+                        // seu login permanece público
                         .requestMatchers(HttpMethod.POST, "/login/**").permitAll()
+
+                        // se quiser manter esses POSTs públicos como você já tinha:
                         .requestMatchers(HttpMethod.POST, "/mentor", "/mentors").permitAll()
-                        .anyRequest().authenticated())
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+                        // TODO: tudo o resto protegido (inclui /actuator/**)
+                        .anyRequest().authenticated()
+                )
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(authFilter, UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(authEntryPoint))
                 .cors(Customizer.withDefaults())
                 .build();
     }
+
 
     @Bean
     PasswordEncoder passwordEncoder(){
@@ -59,15 +68,19 @@ public class SecurityConfig {
     }
 
     @Bean
-    CorsConfigurationSource corsConfig(){
+    CorsConfigurationSource corsConfig() {
         var config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:3000/"));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE"));
+        config.setAllowedOrigins(List.of("http://localhost:3000")); // sem barra
+        config.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
+        config.setExposedHeaders(List.of("Authorization"));
+        config.setAllowCredentials(true);
 
         var source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
     }
-    
+
+
+
 }
